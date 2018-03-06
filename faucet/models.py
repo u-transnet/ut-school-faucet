@@ -3,9 +3,9 @@ import datetime
 from .configs import local_settings as configs
 from django.db import models
 
+NETWORK_VK, NETWORK_FACEBOOK, NETWORK_GOOGLE, NETWORK_TWITTER = 'vk', 'facebook', 'google', 'twitter'
 
 class Account(models.Model):
-    NETWORK_VK, NETWORK_FACEBOOK, NETWORK_GOOGLE, NETWORK_TWITTER = 'vk', 'facebook', 'google', 'twitter'
     NETWORKS = [
         (NETWORK_VK, 'VK'),
         (NETWORK_FACEBOOK, 'Facebook'),
@@ -38,4 +38,25 @@ class Account(models.Model):
     class Meta:
         verbose_name = 'аккаунт'
         verbose_name_plural = 'аккаунты'
-        unique_together = ('name', 'authorized_network', 'uid')
+        unique_together = ('authorized_network', 'uid')
+
+
+class Lecture(models.Model):
+    NETWORKS = [
+        (NETWORK_VK, 'VK'),
+        (NETWORK_FACEBOOK, 'Facebook'),
+        (NETWORK_GOOGLE, 'Google'),
+        (NETWORK_TWITTER, 'Twitter'),
+    ]
+
+    type = models.CharField('Соц. сеть', choices=NETWORKS, max_length=12)
+    url = models.URLField('Ссылка в социальной сети', max_length=255)
+    account_name = models.CharField('Аккаунт', max_length=150)
+
+    def __str__(self):
+        return self.account_name
+
+    class Meta:
+        verbose_name = 'лекция'
+        verbose_name_plural = 'лекции'
+        unique_together = ('type', 'url')
