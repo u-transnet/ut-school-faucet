@@ -115,8 +115,11 @@ class RegisterView(views.View):
             raise Exception('You must provide access_token for that account')
 
     def create_account(self, bitshares_instance, account, registrar_id, referrer_id, ip, social_network):
-        social_network_api = self.api_map[social_network](account['access_token'])
-        user_data = social_network_api.get_user_info()
+        try:
+            social_network_api = self.api_map[social_network](account['access_token'])
+            user_data = social_network_api.get_user_info()
+        except Exception as e:
+            raise Exception("Can't resolve data from social network")
 
         try:
             account = Account.objects.create(
