@@ -42,15 +42,7 @@ class Account(models.Model):
 
 
 class Lecture(models.Model):
-    NETWORKS = [
-        (NETWORK_VK, 'VK'),
-        (NETWORK_FACEBOOK, 'Facebook'),
-        (NETWORK_GOOGLE, 'Google'),
-        (NETWORK_TWITTER, 'Twitter'),
-    ]
-
-    type = models.CharField('Соц. сеть', choices=NETWORKS, max_length=12)
-    url = models.URLField('Ссылка в социальной сети', max_length=255)
+    topic_id = models.CharField('id в соц. сети', max_length=255, unique=True)
     account_name = models.CharField('Аккаунт', max_length=150)
 
     def __str__(self):
@@ -59,4 +51,3 @@ class Lecture(models.Model):
     class Meta:
         verbose_name = 'лекция'
         verbose_name_plural = 'лекции'
-        unique_together = ('type', 'url')

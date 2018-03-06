@@ -4,12 +4,17 @@ from bitshares import BitShares
 import re
 
 from django import views
+from django.db import IntegrityError
+
 from faucet.configs import local_settings as configs
 from django.http import HttpResponseBadRequest, JsonResponse
 
 from logging import getLogger
 
 from faucet import models
+from faucet.forms import AddLectureForm
+from faucet.models import Lecture
+from faucet.utils import VKApi
 
 logger = getLogger(__name__)
 
@@ -17,7 +22,7 @@ logger = getLogger(__name__)
 class RegisterView(views.View):
     required_pub_keys = ["active_key", "memo_key", "owner_key", "name"]
 
-    def post(self, request, referrer=None):
+    def post(self, request, social_network, referrer=None):
 
         try:
             account = self.get_account(request)
@@ -144,3 +149,28 @@ class RegisterView(views.View):
                 ),
             )
 
+
+class LectureView(views.View):
+    def post(self, request):
+        form_data = request.POST.clone()
+        add_lecture_form = AddLectureForm(form_data)
+        if not add_lecture_form.is_valid():
+            return HttpResponseBadRequest()
+
+        data = add_lecture_form.cleaned_data
+        api = VKApi(data['access_token'])
+        is_admin = api.check_is_topic_admin(data['topic_url'])
+
+        if not is_admin:
+            return HttpResponseBadRequest()
+
+        try:
+            Lecture.objects.create(
+                name=data['name'],
+                topic_id=add_lecture_form.get_topic_id()
+            )
+        except IntegrityError as e:
+            logger.error(
+                'Account with topic_id %s - already exists'
+                % (data['topic_id'])
+            )
