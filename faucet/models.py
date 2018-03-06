@@ -3,14 +3,14 @@ import datetime
 from .configs import local_settings as configs
 from django.db import models
 
-NETWORK_VK, NETWORK_FACEBOOK, NETWORK_GOOGLE, NETWORK_TWITTER = 'vk', 'facebook', 'google', 'twitter'
 
 class Account(models.Model):
+    NETWORK_VK, NETWORK_FACEBOOK, NETWORK_GOOGLE = 'vk', 'facebook', 'google'
+
     NETWORKS = [
         (NETWORK_VK, 'VK'),
         (NETWORK_FACEBOOK, 'Facebook'),
         (NETWORK_GOOGLE, 'Google'),
-        (NETWORK_TWITTER, 'Twitter'),
     ]
 
     name = models.CharField('Аккаунт', max_length=255, unique=True)
@@ -19,7 +19,7 @@ class Account(models.Model):
 
     authorized_network = models.CharField('Соц. сеть', choices=NETWORKS, max_length=12)
     uid = models.CharField('UID', max_length=100)
-    first_name = models.CharField('Имя', max_length=150,)
+    first_name = models.CharField('Имя', max_length=150, )
     last_name = models.CharField('Фамилия', max_length=150)
     photo = models.URLField('Фотография', max_length=255)
 

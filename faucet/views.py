@@ -1,5 +1,5 @@
 import json
-from bitshares.account import Account
+from bitshares.account import Account as BitsharesAccount
 from bitshares import BitShares
 import re
 
@@ -11,18 +11,25 @@ from django.http import HttpResponseBadRequest, JsonResponse
 
 from logging import getLogger
 
-from faucet import models
 from faucet.forms import AddLectureForm
-from faucet.models import Lecture
-from faucet.utils import VKApi
+from faucet.models import Lecture, Account
+from faucet.social_api import VKApi, FacebookApi, GoogleApi
 
 logger = getLogger(__name__)
 
 
 class RegisterView(views.View):
     required_pub_keys = ["active_key", "memo_key", "owner_key", "name"]
+    api_map = {
+        Account.NETWORK_VK: VKApi,
+        Account.NETWORK_FACEBOOK: FacebookApi,
+        Account.NETWORK_GOOGLE: GoogleApi
+    }
 
     def post(self, request, social_network, referrer=None):
+
+        if social_network not in self.api_map:
+            return HttpResponseBadRequest()
 
         try:
             account = self.get_account(request)
@@ -49,7 +56,7 @@ class RegisterView(views.View):
             return self.api_error(str(exc))
 
         try:
-            self.create_account(bitshares, account, registrar['id'], referrer['id'], ip)
+            self.create_account(bitshares, account, registrar['id'], referrer['id'], ip, social_network)
         except Exception as e:
             logger.exception('During creating account exception was occurred')
             return self.api_error(str(e))
@@ -86,7 +93,7 @@ class RegisterView(views.View):
         else:
             ip = request.META.get('REMOTE_ADDR')
 
-        if ip != "127.0.0.1" and models.Account.exists(ip):
+        if ip != "127.0.0.1" and Account.exists(ip):
             raise Exception('Only one account per IP')
 
         return True
@@ -98,45 +105,64 @@ class RegisterView(views.View):
             raise Exception("Only cheap names allowed!")
 
         try:
-            Account(account_name, bitshares_instance)
+            BitsharesAccount(account_name, bitshares_instance)
         except:
             pass
         else:
             raise Exception('Account %s already exists' % account_name)
 
-    def create_account(self, bitshares_instance, account, registrar_id, referrer_id, ip):
-        referrer_percent = account.get("referrer_percent", configs.REFERRER_PERCENT)
-        bitshares_instance.create_account(
-            account["name"],
-            registrar=registrar_id,
-            referrer=referrer_id,
-            referrer_percent=referrer_percent,
-            owner_key=account["owner_key"],
-            active_key=account["active_key"],
-            memo_key=account["memo_key"],
-            proxy_account=configs.PROXY,
-            additional_owner_accounts=configs.ADDITIONAL_OWNER_ACCOUNTS,
-            additional_active_accounts=configs.ADDITIONAL_ACTIVE_ACCOUNTS,
-            additional_owner_keys=configs.ADDITIONAL_OWNER_KEYS,
-            additional_active_keys=configs.ADDITIONAL_ACTIVE_KEYS
-        )
+        if not 'access_token' in account:
+            raise Exception('You must provide access_token for that account')
 
-        models.Account.objects.create(
-            name=account["name"],
-            ip=ip
-        )
+    def create_account(self, bitshares_instance, account, registrar_id, referrer_id, ip, social_network):
+        social_network_api = self.api_map[social_network](account['access_token'])
+        user_data = social_network_api.get_user_info()
+
+        try:
+            account = Account.objects.create(
+                name=account["name"],
+                ip=ip,
+
+                authorized_network=social_network,
+                uid=user_data['uid'],
+                first_name=user_data['first_name'],
+                last_name=user_data['last_name'],
+                photo=user_data['photo']
+            )
+        except IntegrityError:
+            raise Exception('Account with this %s uid already exists' % user_data['uid'])
+
+        referrer_percent = account.get("referrer_percent", configs.REFERRER_PERCENT)
+        try:
+            bitshares_instance.create_account(
+                account["name"],
+                registrar=registrar_id,
+                referrer=referrer_id,
+                referrer_percent=referrer_percent,
+                owner_key=account["owner_key"],
+                active_key=account["active_key"],
+                memo_key=account["memo_key"],
+                proxy_account=configs.PROXY,
+                additional_owner_accounts=configs.ADDITIONAL_OWNER_ACCOUNTS,
+                additional_active_accounts=configs.ADDITIONAL_ACTIVE_ACCOUNTS,
+                additional_owner_keys=configs.ADDITIONAL_OWNER_KEYS,
+                additional_active_keys=configs.ADDITIONAL_ACTIVE_KEYS
+            )
+        except Exception as exc:
+            account.delete()
+            raise exc
 
     def get_registrar(self, bitshares_instance, account):
         registrar = account.get("registrar") or configs.REGISTRAR
         try:
-            return Account(registrar, bitshares_instance=bitshares_instance)
+            return BitsharesAccount(registrar, bitshares_instance=bitshares_instance)
         except:
             raise Exception("Unknown registrar: %s" % account['registrar'])
 
     def get_referrer(self, bitshares_instance, account):
         registrar = account.get("referrer") or configs.DEFAULT_REFERRER
         try:
-            return Account(registrar, bitshares_instance=bitshares_instance)
+            return BitsharesAccount(registrar, bitshares_instance=bitshares_instance)
         except:
             raise Exception("Unknown referrer: %s" % account['referrer'])
 
