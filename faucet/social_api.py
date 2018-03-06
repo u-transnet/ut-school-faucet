@@ -59,7 +59,7 @@ class FacebookApi(object):
         ])
         return {
             'uid': user_data.get('id'),
-            'first_name': user_data.get('givenName'),
-            'last_name': user_data.get('familyName'),
+            'first_name': user_data.get('first_name'),
+            'last_name': user_data.get('last_name'),
             'photo': user_data['cover']['source'] if 'cover' in user_data else None
         }
