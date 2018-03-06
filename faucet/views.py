@@ -143,3 +143,4 @@ class RegisterView(views.View):
                     configs.BALANCE_NOTIFY_THRESHOLD
                 ),
             )
+

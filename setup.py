@@ -4,7 +4,8 @@ requirements = [
     'django==2.0.2',
     'bitshares==0.1.11',
     'graphenelib==0.5.9',
-    'social-auth-app-django==2.1.0'
+    'social-auth-app-django==2.1.0',
+    'vk==2.0.2'
 ]
 
 setup(
