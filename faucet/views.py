@@ -26,7 +26,7 @@ class RegisterView(views.View):
         Account.NETWORK_GOOGLE: GoogleApi
     }
 
-    def post(self, request, social_network, referrer=None):
+    def post(self, request, social_network):
 
         if social_network not in self.api_map:
             return HttpResponseBadRequest()
