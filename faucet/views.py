@@ -7,15 +7,40 @@ from django import views
 from django.db import IntegrityError
 
 from faucet.configs import local_settings as configs
-from django.http import HttpResponseBadRequest, JsonResponse
+from django.http import HttpResponseBadRequest, JsonResponse, HttpResponse
 
 from logging import getLogger
 
+from faucet.exceptions import ApiException
 from faucet.forms import AddLectureForm
 from faucet.models import Lecture, Account
 from faucet.social_api import VKApi, FacebookApi, GoogleApi
 
 logger = getLogger(__name__)
+
+
+def create_api_error(api_exc):
+    return JsonResponse({
+        "error":
+            {
+                "code": api_exc.code,
+                "msg": str(api_exc)
+            }
+    }
+    )
+
+
+def catch_api_error(fn):
+    def wrapper(*args, **kwargs):
+        try:
+            resp = fn(*args, **kwargs)
+        except ApiException as e:
+            logger.exception(str(e))
+            resp = create_api_error(e)
+
+        return resp
+
+    return wrapper()
 
 
 class RegisterView(views.View):
@@ -26,21 +51,25 @@ class RegisterView(views.View):
         Account.NETWORK_GOOGLE: GoogleApi
     }
 
+    ERROR_INVALID_ACCOUNT_DATA = 100
+    ERROR_MISSING_PUBLIC_KEY = 101
+    ERROR_INVALID_IP = 102
+    ERROR_DUPLICATE_ACCOUNT = 103
+    ERROR_INVALID_ACCOUNT_NAME = 104
+    ERROR_MISSING_ACCOUNT_TOKEN = 105
+    ERROR_SN_FETCH_DATA_ERROR = 106
+    ERROR_INTERNAL_BLOCKCHAIN_ERROR = 107
+    ERROR_UNKNOWN_REFERRER = 108
+    ERROR_UNKNOWN_REGISTRAR = 109
+
+    @catch_api_error
     def post(self, request, social_network):
 
         if social_network not in self.api_map:
             return HttpResponseBadRequest()
 
-        try:
-            account = self.get_account(request)
-        except Exception as exc:
-            logger.exception("During registration exception was occurred")
-            return HttpResponseBadRequest()
-
-        try:
-            ip = self.get_ip(request)
-        except Exception as exc:
-            return self.api_error(str(exc))
+        account = self.get_account(request)
+        ip = self.get_ip(request)
 
         bitshares = BitShares(
             configs.WITNESS_URL,
@@ -48,18 +77,11 @@ class RegisterView(views.View):
             keys=[configs.WIF]
         )
 
-        try:
-            self.validate_account(bitshares, account)
-            registrar = self.get_registrar(bitshares, account)
-            referrer = self.get_referrer(bitshares, account)
-        except Exception as exc:
-            return self.api_error(str(exc))
+        self.validate_account(bitshares, account)
+        registrar = self.get_registrar(bitshares, account)
+        referrer = self.get_referrer(bitshares, account)
 
-        try:
-            self.create_account(bitshares, account, registrar['id'], referrer['id'], ip, social_network)
-        except Exception as e:
-            logger.exception('During creating account exception was occurred')
-            return self.api_error(str(e))
+        self.create_account(bitshares, account, registrar['id'], referrer['id'], ip, social_network)
 
         self.check_registrar_balance(registrar)
 
@@ -71,19 +93,16 @@ class RegisterView(views.View):
             "referrer": referrer["name"]
         }})
 
-    def api_error(self, msg):
-        return JsonResponse({"error": {"base": [msg]}})
-
     def get_account(self, request):
         json_data = json.loads(request.body)
 
         if not json_data or 'account' not in json_data or 'name' not in json_data['account']:
-            raise Exception('Invalid request data')
+            raise ApiException(self.ERROR_INVALID_ACCOUNT_DATA, 'Account date was not provided')
         account = json_data['account']
 
         for key in self.required_pub_keys:
             if key not in account:
-                raise Exception('Public key %s was missed' % key)
+                raise ApiException(self.ERROR_MISSING_PUBLIC_KEY, 'Public key %s was missed' % key)
 
         return account
 
@@ -93,8 +112,11 @@ class RegisterView(views.View):
         else:
             ip = request.META.get('REMOTE_ADDR')
 
+        if ip == '127.0.0.1':
+            raise ApiException(self.ERROR_INVALID_IP, 'Fake ip was provided')
+
         if ip != "127.0.0.1" and Account.exists(ip):
-            raise Exception('Only one account per IP')
+            raise ApiException(self.ERROR_DUPLICATE_ACCOUNT, 'Only one account per IP')
 
         return True
 
@@ -102,24 +124,24 @@ class RegisterView(views.View):
         account_name = account['name']
         if (not re.search(r"[0-9-]", account_name) and
                 re.search(r"[aeiouy]", account_name)):
-            raise Exception("Only cheap names allowed!")
+            raise ApiException(self.ERROR_INVALID_ACCOUNT_NAME, "Only cheap names allowed!")
+
+        if not 'access_token' in account:
+            raise ApiException(self.ERROR_MISSING_ACCOUNT_TOKEN, 'You must provide access_token for that account')
 
         try:
             BitsharesAccount(account_name, bitshares_instance)
         except:
             pass
         else:
-            raise Exception('Account %s already exists' % account_name)
-
-        if not 'access_token' in account:
-            raise Exception('You must provide access_token for that account')
+            raise ApiException(self.ERROR_DUPLICATE_ACCOUNT, 'Account %s already exists' % account_name)
 
     def create_account(self, bitshares_instance, account, registrar_id, referrer_id, ip, social_network):
         try:
             social_network_api = self.api_map[social_network](account['access_token'])
             user_data = social_network_api.get_user_info()
         except Exception as e:
-            raise Exception("Can't resolve data from social network")
+            raise ApiException(self.ERROR_SN_FETCH_DATA_ERROR, "Can't resolve data from social network")
 
         try:
             account = Account.objects.create(
@@ -133,7 +155,8 @@ class RegisterView(views.View):
                 photo=user_data['photo']
             )
         except IntegrityError:
-            raise Exception('Account with this %s uid already exists' % user_data['uid'])
+            raise ApiException(self.ERROR_DUPLICATE_ACCOUNT,
+                               'Account with this %s uid already exists' % user_data['uid'])
 
         referrer_percent = account.get("referrer_percent", configs.REFERRER_PERCENT)
         try:
@@ -153,21 +176,21 @@ class RegisterView(views.View):
             )
         except Exception as exc:
             account.delete()
-            raise exc
+            raise ApiException(self.ERROR_INTERNAL_BLOCKCHAIN_ERROR, 'Error during broadcasting data into blockchain')
 
     def get_registrar(self, bitshares_instance, account):
         registrar = account.get("registrar") or configs.REGISTRAR
         try:
             return BitsharesAccount(registrar, bitshares_instance=bitshares_instance)
         except:
-            raise Exception("Unknown registrar: %s" % account['registrar'])
+            raise ApiException(self.ERROR_UNKNOWN_REGISTRAR, "Unknown registrar: %s" % account['registrar'])
 
     def get_referrer(self, bitshares_instance, account):
         registrar = account.get("referrer") or configs.DEFAULT_REFERRER
         try:
             return BitsharesAccount(registrar, bitshares_instance=bitshares_instance)
         except:
-            raise Exception("Unknown referrer: %s" % account['referrer'])
+            raise ApiException(self.ERROR_UNKNOWN_REFERRER, "Unknown referrer: %s" % account['referrer'])
 
     def check_registrar_balance(self, registrar):
         balance = registrar.balance(configs.CORE_ASSET)
@@ -180,6 +203,11 @@ class RegisterView(views.View):
 
 
 class LectureView(views.View):
+    ERROR_SN_FETCHING = 100
+    ERROR_SN_HAS_NO_PERMISSION = 101
+    ERROR_DUPLICATE_LECTURE = 102
+
+    @catch_api_error
     def post(self, request):
         form_data = request.POST.clone()
         add_lecture_form = AddLectureForm(form_data)
@@ -187,11 +215,17 @@ class LectureView(views.View):
             return HttpResponseBadRequest()
 
         data = add_lecture_form.cleaned_data
-        api = VKApi(data['access_token'])
-        is_admin = api.check_is_topic_admin(data['topic_url'])
+
+        try:
+            api = VKApi(data['access_token'])
+            is_admin = api.check_is_topic_admin(data['topic_url'])
+        except Exception:
+            raise ApiException(self.ERROR_SN_FETCHING, 'Error during fetching data from social network')
 
         if not is_admin:
-            return HttpResponseBadRequest()
+            raise ApiException(self.ERROR_SN_HAS_NO_PERMISSION,
+                                                 'You have no permission for performing this operation.'
+                                                 ' You must be admin of that group')
 
         try:
             Lecture.objects.create(
@@ -203,3 +237,6 @@ class LectureView(views.View):
                 'Account with topic_id %s - already exists'
                 % (data['topic_id'])
             )
+            raise ApiException(self.ERROR_DUPLICATE_LECTURE, 'Account with topic_id %s - already exists' % data['topic_id'])
+
+        return HttpResponse()
