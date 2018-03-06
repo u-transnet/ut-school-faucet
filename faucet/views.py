@@ -178,6 +178,27 @@ class RegisterView(views.View):
             account.delete()
             raise ApiException(self.ERROR_INTERNAL_BLOCKCHAIN_ERROR, 'Error during broadcasting data into blockchain')
 
+        self.send_welcome_tokens(account.name)
+
+    def send_welcome_tokens(self, account_name):
+        if not configs.WELCOME_TRANSFER_ENABLED:
+            return
+
+        bitshares_instance = BitShares(
+            configs.WITNESS_URL,
+            keys=[configs.WELCOME_TRANSFER_ACCOUNT_WIF]
+        )
+
+        try:
+            bitshares_instance.transfer(
+                account_name,
+                configs.WELCOME_TRANSFER_AMOUNT,
+                configs.WELCOME_TRANSFER_ASSET,
+                configs.WELCOME_TRANSFER_ACCOUNT
+            )
+        except:
+            logger.exception("Can't send welcome tokens to %s !!!" % account_name)
+
     def get_registrar(self, bitshares_instance, account):
         registrar = account.get("registrar") or configs.REGISTRAR
         try:
@@ -224,8 +245,8 @@ class LectureView(views.View):
 
         if not is_admin:
             raise ApiException(self.ERROR_SN_HAS_NO_PERMISSION,
-                                                 'You have no permission for performing this operation.'
-                                                 ' You must be admin of that group')
+                               'You have no permission for performing this operation.'
+                               ' You must be admin of that group')
 
         try:
             Lecture.objects.create(
@@ -237,6 +258,7 @@ class LectureView(views.View):
                 'Account with topic_id %s - already exists'
                 % (data['topic_id'])
             )
-            raise ApiException(self.ERROR_DUPLICATE_LECTURE, 'Account with topic_id %s - already exists' % data['topic_id'])
+            raise ApiException(self.ERROR_DUPLICATE_LECTURE,
+                               'Account with topic_id %s - already exists' % data['topic_id'])
 
         return HttpResponse()
