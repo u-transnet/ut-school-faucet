@@ -4,6 +4,7 @@ from bitshares import BitShares
 import re
 
 from django import views
+from django.conf import settings
 from django.db import IntegrityError
 
 from faucet.configs import local_settings as configs
@@ -40,7 +41,7 @@ def catch_api_error(fn):
 
         return resp
 
-    return wrapper()
+    return wrapper
 
 
 class RegisterView(views.View):
@@ -68,13 +69,22 @@ class RegisterView(views.View):
         if social_network not in self.api_map:
             return HttpResponseBadRequest()
 
-        account = self.get_account(request)
+        try:
+            json_data = json.loads(request.body)
+        except:
+            return HttpResponseBadRequest()
+
+        account = self.get_account(json_data)
         ip = self.get_ip(request)
+
+        keys = []
+        if configs.WIF:
+            keys.append(configs.WIF)
 
         bitshares = BitShares(
             configs.WITNESS_URL,
-            nobroadcast=configs.NOBROADCAST,
-            keys=[configs.WIF]
+            nobroadcast=settings.BLOCKCHAIN_NOBROADCAST,
+            keys=keys
         )
 
         self.validate_account(bitshares, account)
@@ -93,11 +103,9 @@ class RegisterView(views.View):
             "referrer": referrer["name"]
         }})
 
-    def get_account(self, request):
-        json_data = json.loads(request.body)
-
+    def get_account(self, json_data):
         if not json_data or 'account' not in json_data or 'name' not in json_data['account']:
-            raise ApiException(self.ERROR_INVALID_ACCOUNT_DATA, 'Account date was not provided')
+            raise ApiException(self.ERROR_INVALID_ACCOUNT_DATA, 'Account data was not provided')
         account = json_data['account']
 
         for key in self.required_pub_keys:
@@ -126,7 +134,7 @@ class RegisterView(views.View):
                 re.search(r"[aeiouy]", account_name)):
             raise ApiException(self.ERROR_INVALID_ACCOUNT_NAME, "Only cheap names allowed!")
 
-        if not 'access_token' in account:
+        if 'access_token' not in account:
             raise ApiException(self.ERROR_MISSING_ACCOUNT_TOKEN, 'You must provide access_token for that account')
 
         try:
@@ -183,6 +191,12 @@ class RegisterView(views.View):
     def send_welcome_tokens(self, account_name):
         if not configs.WELCOME_TRANSFER_ENABLED:
             return
+
+        if not configs.WELCOME_TRANSFER_ACCOUNT_WIF:
+            logger.critical('WELCOME_TRANSFER_ENABLED but WELCOME_TRANSFER_ACCOUNT_WIF was not passed!'
+                            'Check configuration and provide correct wif.')
+            return
+
 
         bitshares_instance = BitShares(
             configs.WITNESS_URL,
