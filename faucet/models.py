@@ -21,7 +21,7 @@ class Account(models.Model):
     uid = models.CharField('UID', max_length=100)
     first_name = models.CharField('Имя', max_length=150, )
     last_name = models.CharField('Фамилия', max_length=150)
-    photo = models.URLField('Фотография', max_length=255)
+    photo = models.URLField('Фотография', max_length=255, default='')
 
     @staticmethod
     def get_ips():

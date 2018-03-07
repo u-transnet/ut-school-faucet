@@ -148,11 +148,13 @@ class RegisterView(views.View):
         try:
             social_network_api = self.api_map[social_network](account['access_token'])
             user_data = social_network_api.get_user_info()
+            if not user_data:
+                raise Exception()
         except Exception as e:
             raise ApiException(self.ERROR_SN_FETCH_DATA_ERROR, "Can't resolve data from social network")
 
         try:
-            account = Account.objects.create(
+            account_instance = Account.objects.create(
                 name=account["name"],
                 ip=ip,
 
@@ -183,7 +185,7 @@ class RegisterView(views.View):
                 additional_active_keys=configs.ADDITIONAL_ACTIVE_KEYS
             )
         except Exception as exc:
-            account.delete()
+            account_instance.delete()
             raise ApiException(self.ERROR_INTERNAL_BLOCKCHAIN_ERROR, 'Error during broadcasting data into blockchain')
 
         self.send_welcome_tokens(account.name)
@@ -197,9 +199,9 @@ class RegisterView(views.View):
                             'Check configuration and provide correct wif.')
             return
 
-
         bitshares_instance = BitShares(
             configs.WITNESS_URL,
+            nobroadcast=settings.BLOCKCHAIN_NOBROADCAST,
             keys=[configs.WELCOME_TRANSFER_ACCOUNT_WIF]
         )
 

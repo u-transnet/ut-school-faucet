@@ -4,12 +4,13 @@ from django.urls import reverse
 
 from faucet.models import Account
 from faucet.views import RegisterView
+from faucet.configs import test_tokens
 
 
 @override_settings(BLOCKCHAIN_NOBROADCAST=True)
 class RegistrationTest(TestCase):
     FAKE_IP = '192.168.0.15'
-    DEFAULT_NETWORK = 'vk'
+    DEFAULT_NETWORK = Account.NETWORK_VK
 
     VALID_TEST_ACCOUNT_NAME = 'test_account23'
     VALID_TEST_ACCOUNT_SECOND_NAME = 'test_account22'
@@ -54,6 +55,11 @@ class RegistrationTest(TestCase):
         if msg is None:
             msg = 'Must correctly return error code'
         self.assertEqual(resp.json()['error']['code'], expected_code, msg)
+
+    def assert_not_error_code(self, resp, expected_code, msg=None):
+        if msg is None:
+            msg = 'Must correctly return error code'
+        self.assertNotEqual(resp.json()['error']['code'], expected_code, msg)
 
     def assert_api_error(self, resp, expected_code, msg=None):
         self.assert_resp_status(resp, 200)
@@ -123,7 +129,6 @@ class RegistrationTest(TestCase):
         ), use_fake_ip=True)
         self.assert_error_code(resp, RegisterView.ERROR_UNKNOWN_REGISTRAR)
 
-
     def test_referrer(self):
         resp = self.send_request(self.create_request_data(
             fields_values={
@@ -132,3 +137,59 @@ class RegistrationTest(TestCase):
             },
         ), use_fake_ip=True)
         self.assert_error_code(resp, RegisterView.ERROR_UNKNOWN_REFERRER)
+
+    def test_sn_data_fetching(self):
+
+        networks = [Account.NETWORK_VK, Account.NETWORK_GOOGLE, Account.NETWORK_FACEBOOK]
+        tokens = [test_tokens.VK_ACCESS_TOKEN, test_tokens.GOOGLE_ACCESS_TOKEN, test_tokens.FACEBOOK_ACCESS_TOKEN]
+
+        for network, access_token in zip(networks, tokens):
+            resp = self.send_request(self.create_request_data(
+                fields_values={
+                    'name': self.VALID_TEST_ACCOUNT_NAME,
+                    'access_token': ''
+                },
+            ), network=network, use_fake_ip=True)
+            self.assert_error_code(resp, RegisterView.ERROR_SN_FETCH_DATA_ERROR)
+
+            resp = self.send_request(self.create_request_data(
+                fields_values={
+                    'name': self.VALID_TEST_ACCOUNT_NAME,
+                    'referrer': None,
+                    'registrar': None,
+                    'access_token': access_token
+                },
+            ), network=network, use_fake_ip=True)
+            self.assert_resp_status(resp, 200)
+
+            resp_data = resp.json()
+            if 'error' in resp_data:
+                self.assert_not_error_code(resp, RegisterView.ERROR_SN_FETCH_DATA_ERROR,
+                                           "Can't fetch data from %s with provided access_token %s" % (
+                                           network, access_token))
+
+    def test_account_creation(self):
+        resp = self.send_request(self.create_request_data(
+            fields_values={
+                'name': self.VALID_TEST_ACCOUNT_NAME,
+                'referrer': None,
+                'registrar': None,
+                'access_token': test_tokens.VK_ACCESS_TOKEN
+            },
+        ), network=Account.NETWORK_VK, use_fake_ip=True)
+        self.assert_resp_status(resp, 200)
+        self.assertEqual('error' not in resp.json(), True, "Can't create account")
+
+
+    def test_account_duplicate(self):
+        self.test_account_creation()
+        resp = self.send_request(self.create_request_data(
+            fields_values={
+                'name': self.VALID_TEST_ACCOUNT_NAME,
+                'referrer': None,
+                'registrar': None,
+                'access_token': test_tokens.VK_ACCESS_TOKEN
+            },
+        ), network=Account.NETWORK_VK, use_fake_ip=True)
+        self.assert_error_code(resp, RegisterView.ERROR_DUPLICATE_ACCOUNT)
+
