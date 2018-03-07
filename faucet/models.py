@@ -43,7 +43,7 @@ class Account(models.Model):
 
 class Lecture(models.Model):
     topic_id = models.CharField('id в соц. сети', max_length=255, unique=True)
-    account = models.ForeignKey(Account, 'Аккаунт')
+    account_name = models.CharField('Имя аккаунта', max_length=255, unique=True)
 
     @property
     def topic_url(self):

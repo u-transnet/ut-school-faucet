@@ -7,7 +7,7 @@ from faucet.models import Lecture
 
 
 class AddLectureForm(forms.Form):
-    name = forms.CharField()
+    account_name = forms.CharField()
     topic_url = forms.URLField()
     access_token = forms.CharField()
 

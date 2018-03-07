@@ -253,6 +253,7 @@ class LectureView(views.View):
             return HttpResponseBadRequest()
 
         data = add_lecture_form.cleaned_data
+        data['topic_id'] = add_lecture_form.get_topic_id()
         try:
             api = VKApi(data['access_token'])
             is_admin = api.check_is_topic_admin(data['topic_url'])
@@ -264,10 +265,26 @@ class LectureView(views.View):
                                'You have no permission for performing this operation.'
                                ' You must be admin of that group')
 
+
+        keys = []
+        if configs.WIF:
+            keys.pop(configs.WIF)
+
+        bitshares_instance = BitShares(
+            configs.WITNESS_URL,
+            nobroadcast=settings.BLOCKCHAIN_NOBROADCAST,
+            keys=keys
+        )
+
+        try:
+            BitsharesAccount(data['account_name'], bitshares_instance=bitshares_instance)
+        except:
+            raise ApiException(self.ERROR_ACCOUNT_DOES_NOT_EXISTS, 'This account does not exists in blockchain')
+
         try:
             Lecture.objects.create(
-                name=data['name'],
-                topic_id=add_lecture_form.get_topic_id()
+                account_name=data['account_name'],
+                topic_id=data['topic_id']
             )
         except IntegrityError as e:
             logger.error(
@@ -277,4 +294,4 @@ class LectureView(views.View):
             raise ApiException(self.ERROR_DUPLICATE_LECTURE,
                                'Account with topic_id %s - already exists' % data['topic_id'])
 
-        return HttpResponse()
+        return JsonResponse({})
