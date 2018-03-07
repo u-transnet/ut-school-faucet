@@ -243,16 +243,16 @@ class LectureView(views.View):
     ERROR_SN_FETCHING = 100
     ERROR_SN_HAS_NO_PERMISSION = 101
     ERROR_DUPLICATE_LECTURE = 102
+    ERROR_ACCOUNT_DOES_NOT_EXISTS = 103
 
     @catch_api_error
     def post(self, request):
-        form_data = request.POST.clone()
+        form_data = request.POST.dict()
         add_lecture_form = AddLectureForm(form_data)
         if not add_lecture_form.is_valid():
             return HttpResponseBadRequest()
 
         data = add_lecture_form.cleaned_data
-
         try:
             api = VKApi(data['access_token'])
             is_admin = api.check_is_topic_admin(data['topic_url'])

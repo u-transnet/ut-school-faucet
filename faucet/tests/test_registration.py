@@ -1,14 +1,15 @@
 import json
-from django.test import TestCase, override_settings
+from django.test import override_settings
 from django.urls import reverse
 
 from faucet.models import Account
+from faucet.tests.utils import ApiTestCase
 from faucet.views import RegisterView
 from faucet.configs import test_tokens
 
 
 @override_settings(BLOCKCHAIN_NOBROADCAST=True)
-class RegistrationTest(TestCase):
+class RegistrationTest(ApiTestCase):
     FAKE_IP = '192.168.0.15'
     DEFAULT_NETWORK = Account.NETWORK_VK
 
@@ -178,7 +179,7 @@ class RegistrationTest(TestCase):
             },
         ), network=Account.NETWORK_VK, use_fake_ip=True)
         self.assert_resp_status(resp, 200)
-        self.assertEqual('error' not in resp.json(), True, "Can't create account")
+        self.assert_api_success(resp, "Can't create account")
 
 
     def test_account_duplicate(self):

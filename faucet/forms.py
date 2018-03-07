@@ -14,7 +14,7 @@ class AddLectureForm(forms.Form):
     def clean(self):
         topic_id = self.get_topic_id()
         if not topic_id:
-            raise ValidationError('Invalid url was provided %s' % self.cleaned_data['topic_url'])
+            raise ValidationError('Invalid url was provided %s' % self.cleaned_data.get('topic_url', ''))
 
         return self.cleaned_data
 
@@ -22,7 +22,7 @@ class AddLectureForm(forms.Form):
         if not self.cleaned_data:
             return None
 
-        results = re.compile('topic-(\d+_\d+)').search(self.cleaned_data['topic_url'])
+        results = re.compile('topic-(\d+_\d+)').search(self.cleaned_data.get('topic_url', ''))
         if not results:
             return None
 

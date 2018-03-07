@@ -43,10 +43,14 @@ class Account(models.Model):
 
 class Lecture(models.Model):
     topic_id = models.CharField('id в соц. сети', max_length=255, unique=True)
-    account_name = models.CharField('Аккаунт', max_length=150)
+    account = models.ForeignKey(Account, 'Аккаунт')
+
+    @property
+    def topic_url(self):
+        return 'https://vk.com/topic-%s' % self.topic_id
 
     def __str__(self):
-        return self.account_name
+        return self.topic_url
 
     class Meta:
         verbose_name = 'лекция'
