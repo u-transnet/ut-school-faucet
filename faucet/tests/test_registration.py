@@ -42,7 +42,7 @@ class RegistrationTest(ApiTestCase):
 
     def send_request(self, request_data, use_fake_ip=False):
         ip = self.FAKE_IP if use_fake_ip else '127.0.0.1'
-        return self.client.post(reverse('register'), data=request_data,
+        return self.client.post(reverse('api_v1:register'), data=request_data,
                                 REMOTE_ADDR=ip)
 
     def test_networks_recognition(self):
@@ -56,10 +56,10 @@ class RegistrationTest(ApiTestCase):
             self.assert_resp_status(resp, resp_code, 'Network %s failed' % network)
 
     def test_account_data(self):
-        resp = self.client.post(reverse('register'), {})
+        resp = self.client.post(reverse('api_v1:register'), {})
         self.assertEqual(resp.status_code, 400, 'Registration must reject empty response')
 
-        resp = self.client.post(reverse('register'), {})
+        resp = self.client.post(reverse('api_v1:register'), {})
         self.assert_resp_status(resp, 400)
 
         missing_keys = ['owner_key', 'active_key', 'memo_key']

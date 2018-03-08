@@ -26,12 +26,12 @@ class AddLectureTest(ApiTestCase):
         for key in data.keys():
             request_data = dict(data)
             del request_data[key]
-            resp = self.client.post(reverse('lectures'), request_data)
+            resp = self.client.post(reverse('api_v1:lectures'), request_data)
             self.assert_resp_status(resp, 400, "Must return bad request on missing fields")
 
         request_data = dict(data)
         request_data['topic_url'] = self.TOPIC_URL_INVALID
-        resp = self.client.post(reverse('lectures'), request_data)
+        resp = self.client.post(reverse('api_v1:lectures'), request_data)
         self.assert_resp_status(resp, 400, "Must return bad request on invalid topic_url")
 
     def test_fetching_data_from_social_network(self):
@@ -40,7 +40,7 @@ class AddLectureTest(ApiTestCase):
             'topic_url': self.TOPIC_URL_VALID,
             'access_token': 'fake_token'
         }
-        resp = self.client.post(reverse('lectures'), request_data)
+        resp = self.client.post(reverse('api_v1:lectures'), request_data)
         self.assert_api_error(resp, LectureView.ERROR_SN_FETCHING,
                               'Must return error about fetching data from social network')
 
@@ -50,11 +50,11 @@ class AddLectureTest(ApiTestCase):
             'topic_url': self.TOPIC_URL_VALID_NOT_MINE,
             'access_token': test_tokens.VK_ACCESS_TOKEN
         }
-        resp = self.client.post(reverse('lectures'), request_data)
+        resp = self.client.post(reverse('api_v1:lectures'), request_data)
         self.assert_api_error(resp, LectureView.ERROR_SN_HAS_NO_PERMISSION)
 
         request_data['topic_url'] = self.TOPIC_URL_VALID
-        resp = self.client.post(reverse('lectures'), request_data)
+        resp = self.client.post(reverse('api_v1:lectures'), request_data)
         self.assert_api_success(resp)
 
     def test_account_does_not_exists(self):
@@ -63,7 +63,7 @@ class AddLectureTest(ApiTestCase):
             'topic_url': self.TOPIC_URL_VALID,
             'access_token': test_tokens.VK_ACCESS_TOKEN
         }
-        resp = self.client.post(reverse('lectures'), request_data)
+        resp = self.client.post(reverse('api_v1:lectures'), request_data)
         self.assert_api_error(resp, LectureView.ERROR_ACCOUNT_DOES_NOT_EXISTS)
 
 
@@ -79,7 +79,7 @@ class AddLectureTest(ApiTestCase):
             'topic_url': self.TOPIC_URL_VALID,
             'access_token': test_tokens.VK_ACCESS_TOKEN
         }
-        resp = self.client.post(reverse('lectures'), request_data)
+        resp = self.client.post(reverse('api_v1:lectures'), request_data)
         self.assert_api_error(resp, LectureView.ERROR_DUPLICATE_LECTURE)
 
 
@@ -89,5 +89,5 @@ class AddLectureTest(ApiTestCase):
             'topic_url': self.TOPIC_URL_VALID,
             'access_token': test_tokens.VK_ACCESS_TOKEN
         }
-        resp = self.client.post(reverse('lectures'), request_data)
+        resp = self.client.post(reverse('api_v1:lectures'), request_data)
         self.assert_api_success(resp, 'Must create successfully create account')
