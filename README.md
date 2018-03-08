@@ -1,5 +1,24 @@
 # ut-school-faucet
 
+# Базовые конфигурации 
+Конфигурации фасета находятся в папке /faucet/configs/
+1) local_settings - открытые конфигурации; 
+2) private_key - файл с WIF ключами, который не публикуется в открытых источниках;
+3) test_tokens - файл где располагаются access_token'ы для запуска тестов;
+ 
+ **Содержимое private_key**
+ ```
+ WIF = "change_me" #  Ключ от учетной записи аккаунта регистратора
+ WELCOME_TRANSFER_ACCOUNT_WIF = "change_me" #  Ключ от ученой записи с которой будет начисляться токены за регистрацию
+ ```
+ 
+  **Содержимое test_tokens**
+ ```
+VK_ACCESS_TOKEN = 'change_me'
+FACEBOOK_ACCESS_TOKEN = 'change_me'
+GOOGLE_ACCESS_TOKEN = 'change_me'
+ ```
+
 # Получение access_token'ов
 Сначала необходимо авторизоваться в выбранной социальной сети.
 
