@@ -13,7 +13,7 @@ from django.http import HttpResponseBadRequest, JsonResponse, HttpResponse
 from logging import getLogger
 
 from faucet.exceptions import ApiException
-from faucet.forms import AddLectureForm
+from faucet.forms import AddLectureForm, RegistrationForm
 from faucet.models import Lecture, Account
 from faucet.social_api import VKApi, FacebookApi, GoogleApi
 
@@ -45,36 +45,28 @@ def catch_api_error(fn):
 
 
 class RegisterView(views.View):
-    required_pub_keys = ["active_key", "memo_key", "owner_key", "name"]
     api_map = {
         Account.NETWORK_VK: VKApi,
         Account.NETWORK_FACEBOOK: FacebookApi,
         Account.NETWORK_GOOGLE: GoogleApi
     }
 
-    ERROR_INVALID_ACCOUNT_DATA = 100
-    ERROR_MISSING_PUBLIC_KEY = 101
     ERROR_INVALID_IP = 102
     ERROR_DUPLICATE_ACCOUNT = 103
     ERROR_INVALID_ACCOUNT_NAME = 104
-    ERROR_MISSING_ACCOUNT_TOKEN = 105
     ERROR_SN_FETCH_DATA_ERROR = 106
     ERROR_INTERNAL_BLOCKCHAIN_ERROR = 107
     ERROR_UNKNOWN_REFERRER = 108
     ERROR_UNKNOWN_REGISTRAR = 109
 
     @catch_api_error
-    def post(self, request, social_network):
+    def post(self, request):
 
-        if social_network not in self.api_map:
+        registration_form = RegistrationForm(request.POST.dict())
+        if not registration_form.is_valid():
             return HttpResponseBadRequest()
 
-        try:
-            json_data = json.loads(request.body)
-        except:
-            return HttpResponseBadRequest()
-
-        account = self.get_account(json_data)
+        account = registration_form.cleaned_data
         ip = self.get_ip(request)
 
         keys = []
@@ -91,7 +83,7 @@ class RegisterView(views.View):
         registrar = self.get_registrar(bitshares, account)
         referrer = self.get_referrer(bitshares, account)
 
-        self.create_account(bitshares, account, registrar['id'], referrer['id'], ip, social_network)
+        self.create_account(bitshares, account, registrar['id'], referrer['id'], ip, account['social_network'])
 
         self.check_registrar_balance(registrar)
 
@@ -102,17 +94,6 @@ class RegisterView(views.View):
             "memo_key": account["memo_key"],
             "referrer": referrer["name"]
         }})
-
-    def get_account(self, json_data):
-        if not json_data or 'account' not in json_data or 'name' not in json_data['account']:
-            raise ApiException(self.ERROR_INVALID_ACCOUNT_DATA, 'Account data was not provided')
-        account = json_data['account']
-
-        for key in self.required_pub_keys:
-            if key not in account:
-                raise ApiException(self.ERROR_MISSING_PUBLIC_KEY, 'Public key %s was missed' % key)
-
-        return account
 
     def get_ip(self, request):
         if request.META.get('X-Real-IP'):
@@ -134,9 +115,6 @@ class RegisterView(views.View):
                 re.search(r"[aeiouy]", account_name)):
             raise ApiException(self.ERROR_INVALID_ACCOUNT_NAME, "Only cheap names allowed!")
 
-        if 'access_token' not in account:
-            raise ApiException(self.ERROR_MISSING_ACCOUNT_TOKEN, 'You must provide access_token for that account')
-
         try:
             BitsharesAccount(account_name, bitshares_instance)
         except:
@@ -157,7 +135,6 @@ class RegisterView(views.View):
             account_instance = Account.objects.create(
                 name=account["name"],
                 ip=ip,
-
                 authorized_network=social_network,
                 uid=user_data['uid'],
                 first_name=user_data['first_name'],
@@ -188,7 +165,7 @@ class RegisterView(views.View):
             account_instance.delete()
             raise ApiException(self.ERROR_INTERNAL_BLOCKCHAIN_ERROR, 'Error during broadcasting data into blockchain')
 
-        self.send_welcome_tokens(account.name)
+        self.send_welcome_tokens(account['name'])
 
     def send_welcome_tokens(self, account_name):
         if not configs.WELCOME_TRANSFER_ENABLED:

@@ -3,7 +3,20 @@ import re
 from django import forms
 from django.core.exceptions import ValidationError
 
-from faucet.models import Lecture
+from faucet.models import Lecture, Account
+
+
+class RegistrationForm(forms.Form):
+
+    name = forms.CharField(max_length=150)
+    owner_key = forms.CharField(max_length=512)
+    active_key = forms.CharField(max_length=512)
+    memo_key = forms.CharField(max_length=512)
+    access_token = forms.CharField(max_length=2048)
+    social_network = forms.ChoiceField(choices=Account.NETWORKS)
+
+    registrar = forms.CharField(max_length=255, required=False)
+    referrer = forms.CharField(max_length=255, required=False)
 
 
 class AddLectureForm(forms.Form):
