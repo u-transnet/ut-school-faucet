@@ -13,7 +13,7 @@ from django.http import HttpResponseBadRequest, JsonResponse, HttpResponse
 from logging import getLogger
 
 from faucet.exceptions import ApiException
-from faucet.forms import AddLectureForm, RegistrationForm, GetLecturesForm
+from faucet.forms import AddLectureForm, CreateAccountForm, GetLecturesForm, GetAccountsForm
 from faucet.models import Lecture, Account
 from faucet.social_api import VKApi, FacebookApi, GoogleApi
 
@@ -44,7 +44,7 @@ def catch_api_error(fn):
     return wrapper
 
 
-class RegisterView(views.View):
+class AccountView(views.View):
     api_map = {
         Account.NETWORK_VK: VKApi,
         Account.NETWORK_FACEBOOK: FacebookApi,
@@ -60,9 +60,21 @@ class RegisterView(views.View):
     ERROR_UNKNOWN_REGISTRAR = 109
 
     @catch_api_error
+    def get(self, request):
+        form_data = request.GET.dict()
+        get_accounts_form = GetAccountsForm(form_data)
+        if not get_accounts_form.is_valid():
+            return HttpResponseBadRequest()
+
+        accounts = Account.objects.filter(name__in=get_accounts_form.cleaned_data['accounts'])
+        return JsonResponse([
+            account.json() for account in accounts
+        ], safe=False)
+
+    @catch_api_error
     def post(self, request):
 
-        registration_form = RegistrationForm(request.POST.dict())
+        registration_form = CreateAccountForm(request.POST.dict())
         if not registration_form.is_valid():
             return HttpResponseBadRequest()
 

@@ -4,12 +4,12 @@ from django.urls import reverse
 
 from faucet.models import Account
 from faucet.tests.utils import ApiTestCase
-from faucet.views import RegisterView
+from faucet.views import AccountView
 from faucet.configs import test_tokens
 
 
 @override_settings(BLOCKCHAIN_NOBROADCAST=True)
-class RegistrationTest(ApiTestCase):
+class CreateAccountTest(ApiTestCase):
     FAKE_IP = '192.168.0.15'
     DEFAULT_NETWORK = Account.NETWORK_VK
 
@@ -42,7 +42,7 @@ class RegistrationTest(ApiTestCase):
 
     def send_request(self, request_data, use_fake_ip=False):
         ip = self.FAKE_IP if use_fake_ip else '127.0.0.1'
-        return self.client.post(reverse('api_v1:register'), data=request_data,
+        return self.client.post(reverse('api_v1:accounts'), data=request_data,
                                 REMOTE_ADDR=ip)
 
     def test_networks_recognition(self):
@@ -56,10 +56,10 @@ class RegistrationTest(ApiTestCase):
             self.assert_resp_status(resp, resp_code, 'Network %s failed' % network)
 
     def test_account_data(self):
-        resp = self.client.post(reverse('api_v1:register'), {})
+        resp = self.client.post(reverse('api_v1:accounts'), {})
         self.assertEqual(resp.status_code, 400, 'Registration must reject empty response')
 
-        resp = self.client.post(reverse('api_v1:register'), {})
+        resp = self.client.post(reverse('api_v1:accounts'), {})
         self.assert_resp_status(resp, 400)
 
         missing_keys = ['owner_key', 'active_key', 'memo_key']
@@ -69,7 +69,7 @@ class RegistrationTest(ApiTestCase):
 
     def test_ip(self):
         resp = self.send_request(self.create_request_data())
-        self.assert_error_code(resp, RegisterView.ERROR_INVALID_IP)
+        self.assert_error_code(resp, AccountView.ERROR_INVALID_IP)
 
         account = Account.objects.create(
             name='test',
@@ -81,7 +81,7 @@ class RegistrationTest(ApiTestCase):
         )
 
         resp = self.send_request(self.create_request_data(), use_fake_ip=True)
-        self.assert_api_error(resp, RegisterView.ERROR_DUPLICATE_ACCOUNT)
+        self.assert_api_error(resp, AccountView.ERROR_DUPLICATE_ACCOUNT)
 
         account.delete()
 
@@ -89,12 +89,12 @@ class RegistrationTest(ApiTestCase):
 
         # Validate cheap name
         resp = self.send_request(self.create_request_data(), use_fake_ip=True)
-        self.assert_error_code(resp, RegisterView.ERROR_INVALID_ACCOUNT_NAME)
+        self.assert_error_code(resp, AccountView.ERROR_INVALID_ACCOUNT_NAME)
 
         resp = self.send_request(self.create_request_data(
             fields_values={'name': self.EXISTS_ACCOUNT_NAME},
         ), use_fake_ip=True)
-        self.assert_error_code(resp, RegisterView.ERROR_DUPLICATE_ACCOUNT)
+        self.assert_error_code(resp, AccountView.ERROR_DUPLICATE_ACCOUNT)
 
     def test_registrar(self):
         resp = self.send_request(self.create_request_data(
@@ -103,7 +103,7 @@ class RegistrationTest(ApiTestCase):
                 'registrar': self.VALID_TEST_ACCOUNT_SECOND_NAME
             },
         ), use_fake_ip=True)
-        self.assert_error_code(resp, RegisterView.ERROR_UNKNOWN_REGISTRAR)
+        self.assert_error_code(resp, AccountView.ERROR_UNKNOWN_REGISTRAR)
 
     def test_referrer(self):
         resp = self.send_request(self.create_request_data(
@@ -112,7 +112,7 @@ class RegistrationTest(ApiTestCase):
                 'referrer': self.VALID_TEST_ACCOUNT_SECOND_NAME
             },
         ), use_fake_ip=True)
-        self.assert_error_code(resp, RegisterView.ERROR_UNKNOWN_REFERRER)
+        self.assert_error_code(resp, AccountView.ERROR_UNKNOWN_REFERRER)
 
     def test_sn_data_fetching(self):
 
@@ -127,7 +127,7 @@ class RegistrationTest(ApiTestCase):
                     'social_network': network
                 },
             ), use_fake_ip=True)
-            self.assert_error_code(resp, RegisterView.ERROR_SN_FETCH_DATA_ERROR)
+            self.assert_error_code(resp, AccountView.ERROR_SN_FETCH_DATA_ERROR)
 
             resp = self.send_request(self.create_request_data(
                 fields_values={
@@ -142,7 +142,7 @@ class RegistrationTest(ApiTestCase):
 
             resp_data = resp.json()
             if 'error' in resp_data:
-                self.assert_not_error_code(resp, RegisterView.ERROR_SN_FETCH_DATA_ERROR,
+                self.assert_not_error_code(resp, AccountView.ERROR_SN_FETCH_DATA_ERROR,
                                            "Can't fetch data from %s with provided access_token %s" % (
                                                network, access_token))
 
@@ -170,4 +170,44 @@ class RegistrationTest(ApiTestCase):
                 'social_network': Account.NETWORK_VK
             },
         ), use_fake_ip=True)
-        self.assert_error_code(resp, RegisterView.ERROR_DUPLICATE_ACCOUNT)
+        self.assert_error_code(resp, AccountView.ERROR_DUPLICATE_ACCOUNT)
+
+
+class GetAccountsTest(ApiTestCase):
+    def test_bad_request(self):
+        resp = self.client.get(reverse('api_v1:accounts'), {})
+        self.assert_resp_status(resp, 400, 'Must return bad request')
+
+    def test_get_not_existing_accounts(self):
+        resp = self.client.get(reverse('api_v1:accounts'), {'accounts': 'dgrdg,eqweq'})
+        self.assert_api_success(resp, 'Must return success response')
+        self.assertEqual(len(resp.json()) == 0, True, 'Must return empty list')
+
+    def test_get_existing_accounts(self):
+        account1 = Account.objects.create(
+            name='test_account1',
+            ip='127.63.534.123',
+            authorized_network=Account.NETWORK_VK,
+            uid='test1',
+            first_name='test1',
+            last_name='test2',
+            photo='test3'
+        )
+        account2 = Account.objects.create(
+            name='test_account2',
+            ip='127.63.564.123',
+            authorized_network=Account.NETWORK_VK,
+            uid='test2',
+            first_name='test3',
+            last_name='test4',
+            photo='test5'
+        )
+        resp = self.client.get(reverse('api_v1:accounts'),
+                                {'accounts': '%s,eqweq,%s' % (account1.name, account2.name)}
+                               )
+        self.assert_api_success(resp, 'Must return success response')
+        self.assertEqual(len(resp.json()) > 0, True, 'Must return non empty list')
+        self.assertEqual(
+            len([data['name'] for data in resp.json()
+                 if data['name'] in [account1.name, account2.name]]) == 2,
+            True, 'Must find both existing accounts')

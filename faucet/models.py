@@ -32,6 +32,16 @@ class Account(models.Model):
     def exists(ip):
         return ip in Account.get_ips()
 
+    def json(self):
+        return {
+            'name': self.name,
+            'authorized_network': self.authorized_network,
+            'uid': self.uid,
+            'first_name': self.first_name,
+            'last_name': self.last_name,
+            'photo': self.photo
+        }
+
     def __str__(self):
         return 'Аккаунт: %s' % self.name
 

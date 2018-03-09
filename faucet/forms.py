@@ -6,8 +6,7 @@ from django.core.exceptions import ValidationError
 from faucet.models import Lecture, Account
 
 
-class RegistrationForm(forms.Form):
-
+class CreateAccountForm(forms.Form):
     name = forms.CharField(max_length=150)
     owner_key = forms.CharField(max_length=512)
     active_key = forms.CharField(max_length=512)
@@ -17,6 +16,14 @@ class RegistrationForm(forms.Form):
 
     registrar = forms.CharField(max_length=255, required=False)
     referrer = forms.CharField(max_length=255, required=False)
+
+
+class GetAccountsForm(forms.Form):
+    accounts = forms.CharField()
+
+    def clean_accounts(self):
+        accounts_names = self.cleaned_data['accounts'].split(',')
+        return [account.strip() for account in accounts_names]
 
 
 class AddLectureForm(forms.Form):
