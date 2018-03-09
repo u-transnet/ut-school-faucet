@@ -96,15 +96,6 @@ class CreateAccountTest(ApiTestCase):
         ), use_fake_ip=True)
         self.assert_error_code(resp, AccountView.ERROR_DUPLICATE_ACCOUNT)
 
-    def test_registrar(self):
-        resp = self.send_request(self.create_request_data(
-            fields_values={
-                'name': self.VALID_TEST_ACCOUNT_NAME,
-                'registrar': self.VALID_TEST_ACCOUNT_SECOND_NAME
-            },
-        ), use_fake_ip=True)
-        self.assert_error_code(resp, AccountView.ERROR_UNKNOWN_REGISTRAR)
-
     def test_referrer(self):
         resp = self.send_request(self.create_request_data(
             fields_values={

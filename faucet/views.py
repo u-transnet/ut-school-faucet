@@ -205,7 +205,7 @@ class AccountView(views.View):
             logger.exception("Can't send welcome tokens to %s !!!" % account_name)
 
     def get_registrar(self, bitshares_instance, account):
-        registrar = account.get("registrar") or configs.REGISTRAR
+        registrar = configs.REGISTRAR
         try:
             return BitsharesAccount(registrar, bitshares_instance=bitshares_instance)
         except:

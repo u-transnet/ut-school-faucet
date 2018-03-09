@@ -1,7 +1,7 @@
 from .private_key import *
 
 MIN_IP_AGE = 300  # How long in secs does an IP need to wait to register a new account?
-WITNESS_URL = "wss://transnet.tech:10443/ws"  # Url of node for registering
+WITNESS_URL = "wss://bitshares.openledger.info/ws"  # Url of node for registering
 
 REGISTRAR = "u-tech-faucet"
 DEFAULT_REFERRER = "u-tech-faucet"
