@@ -57,7 +57,7 @@ class AccountView(views.View):
     ERROR_SN_FETCH_DATA_ERROR = 106
     ERROR_INTERNAL_BLOCKCHAIN_ERROR = 107
     ERROR_UNKNOWN_REFERRER = 108
-    ERROR_UNKNOWN_REGISTRAR = 109
+    ERROR_INTERNAL_SERVER_ERROR = 109
 
     @catch_api_error
     def get(self, request):
@@ -210,7 +210,8 @@ class AccountView(views.View):
         try:
             return BitsharesAccount(registrar, bitshares_instance=bitshares_instance)
         except:
-            raise ApiException(self.ERROR_UNKNOWN_REGISTRAR, "Unknown registrar: %s" % registrar)
+            logger.critical("Unknown registrar: %s. Please configure it in settings" % registrar)
+            raise ApiException(self.ERROR_INTERNAL_SERVER_ERROR, 'Internal server error')
 
     def get_referrer(self, bitshares_instance, account):
         referrer = account.get("referrer") or configs.DEFAULT_REFERRER
