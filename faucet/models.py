@@ -49,6 +49,12 @@ class Lecture(models.Model):
     def topic_url(self):
         return 'https://vk.com/topic-%s' % self.topic_id
 
+    def json(self):
+        return {
+            'topic_url': self.topic_url,
+            'account_name': self.account_name
+        }
+
     def __str__(self):
         return self.topic_url
 

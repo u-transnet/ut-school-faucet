@@ -13,7 +13,7 @@ from django.http import HttpResponseBadRequest, JsonResponse, HttpResponse
 from logging import getLogger
 
 from faucet.exceptions import ApiException
-from faucet.forms import AddLectureForm, RegistrationForm
+from faucet.forms import AddLectureForm, RegistrationForm, GetLecturesForm
 from faucet.models import Lecture, Account
 from faucet.social_api import VKApi, FacebookApi, GoogleApi
 
@@ -221,6 +221,18 @@ class LectureView(views.View):
     ERROR_SN_HAS_NO_PERMISSION = 101
     ERROR_DUPLICATE_LECTURE = 102
     ERROR_ACCOUNT_DOES_NOT_EXISTS = 103
+
+    @catch_api_error
+    def get(self, request):
+        form_data = request.GET.dict()
+        get_lecture_form = GetLecturesForm(form_data)
+        if not get_lecture_form.is_valid():
+            return HttpResponseBadRequest()
+
+        lectures = Lecture.objects.filter(account_name__in=get_lecture_form.cleaned_data['accounts'])
+        return JsonResponse([
+            lecture.json() for lecture in lectures
+        ], safe=False)
 
     @catch_api_error
     def post(self, request):

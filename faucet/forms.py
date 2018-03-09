@@ -40,3 +40,11 @@ class AddLectureForm(forms.Form):
             return None
 
         return results.groups(1)
+
+
+class GetLecturesForm(forms.Form):
+    accounts = forms.CharField()
+
+    def clean_accounts(self):
+        accounts_names = self.cleaned_data['accounts'].split(',')
+        return [account.strip() for account in accounts_names]
