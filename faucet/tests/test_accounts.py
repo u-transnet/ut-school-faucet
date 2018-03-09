@@ -1,4 +1,6 @@
 import json
+
+from bitsharesbase.account import PrivateKey, PublicKey
 from django.test import override_settings
 from django.urls import reverse
 
@@ -26,9 +28,9 @@ class CreateAccountTest(ApiTestCase):
 
         request_data = {
             "name": self.PRIMARY_ACCOUNT_NAME,
-            "owner_key": 'test1',
-            "active_key": 'test2',
-            "memo_key": 'test3',
+            "owner_key": 'BTS6NhThRbX2UH2fAt1jUvgEGgzgN9Q4ZycMNUhbQA9e8PhLympFc',
+            "active_key": 'BTS5bnrZmDUmVWmpYAGXEKLVDeeuwLnrSD4if5vE5EQ2VPabriet7',
+            "memo_key": 'BTS5bnrZmDUmVWmpYAGXEKLVDeeuwLnrSD4if5vE5EQ2VPabriet7',
             "access_token": 'sometoken',
             "social_network": self.DEFAULT_NETWORK
         }
@@ -105,7 +107,7 @@ class CreateAccountTest(ApiTestCase):
         ), use_fake_ip=True)
         self.assert_error_code(resp, AccountView.ERROR_UNKNOWN_REFERRER)
 
-    def test_sn_data_fetching(self):
+    def test_sn_data_fetching_fail(self):
 
         networks = [Account.NETWORK_VK, Account.NETWORK_GOOGLE, Account.NETWORK_FACEBOOK]
         tokens = [test_tokens.VK_ACCESS_TOKEN, test_tokens.GOOGLE_ACCESS_TOKEN, test_tokens.FACEBOOK_ACCESS_TOKEN]
@@ -120,48 +122,36 @@ class CreateAccountTest(ApiTestCase):
             ), use_fake_ip=True)
             self.assert_error_code(resp, AccountView.ERROR_SN_FETCH_DATA_ERROR)
 
-            resp = self.send_request(self.create_request_data(
-                fields_values={
-                    'name': self.VALID_TEST_ACCOUNT_NAME,
-                    'referrer': None,
-                    'registrar': None,
-                    'access_token': access_token,
-                    'social_network': network
-                },
-            ), use_fake_ip=True)
-            self.assert_resp_status(resp, 200)
-
-            resp_data = resp.json()
-            if 'error' in resp_data:
-                self.assert_not_error_code(resp, AccountView.ERROR_SN_FETCH_DATA_ERROR,
-                                           "Can't fetch data from %s with provided access_token %s" % (
-                                               network, access_token))
-
-    def test_account_creation(self):
-        resp = self.send_request(self.create_request_data(
-            fields_values={
-                'name': self.VALID_TEST_ACCOUNT_NAME,
-                'referrer': None,
-                'registrar': None,
-                'access_token': test_tokens.VK_ACCESS_TOKEN,
-                'social_network': Account.NETWORK_VK
-            },
-        ), use_fake_ip=True)
-        self.assert_resp_status(resp, 200)
-        self.assert_api_success(resp, "Can't create account")
-
     def test_account_duplicate(self):
-        self.test_account_creation()
+        self.test_account_creation_vk()
         resp = self.send_request(self.create_request_data(
             fields_values={
                 'name': self.VALID_TEST_ACCOUNT_NAME,
-                'referrer': None,
-                'registrar': None,
                 'access_token': test_tokens.VK_ACCESS_TOKEN,
                 'social_network': Account.NETWORK_VK
             },
         ), use_fake_ip=True)
         self.assert_error_code(resp, AccountView.ERROR_DUPLICATE_ACCOUNT)
+
+    def create_account(self, network, token):
+        resp = self.send_request(self.create_request_data(
+            fields_values={
+                'name': self.VALID_TEST_ACCOUNT_NAME,
+                'access_token': token,
+                'social_network': network
+            },
+        ), use_fake_ip=True)
+        self.assert_resp_status(resp, 200)
+        self.assert_api_success(resp, "Can't create account")
+
+    def test_account_creation_vk(self):
+        self.create_account(Account.NETWORK_VK, test_tokens.VK_ACCESS_TOKEN)
+
+    def test_account_creation_google(self):
+        self.create_account(Account.NETWORK_GOOGLE, test_tokens.GOOGLE_ACCESS_TOKEN)
+
+    def test_account_creation_facebook(self):
+        self.create_account(Account.NETWORK_FACEBOOK, test_tokens.FACEBOOK_ACCESS_TOKEN)
 
 
 class GetAccountsTest(ApiTestCase):

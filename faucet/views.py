@@ -116,7 +116,7 @@ class AccountView(views.View):
         if ip == '127.0.0.1':
             raise ApiException(self.ERROR_INVALID_IP, 'Fake ip was provided')
 
-        if ip != "127.0.0.1" and Account.exists(ip):
+        if Account.exists(ip):
             raise ApiException(self.ERROR_DUPLICATE_ACCOUNT, 'Only one account per IP')
 
         return True
@@ -174,6 +174,7 @@ class AccountView(views.View):
                 additional_active_keys=configs.ADDITIONAL_ACTIVE_KEYS
             )
         except Exception as exc:
+            print(exc)
             account_instance.delete()
             raise ApiException(self.ERROR_INTERNAL_BLOCKCHAIN_ERROR, 'Error during broadcasting data into blockchain')
 
@@ -199,7 +200,7 @@ class AccountView(views.View):
                 account_name,
                 configs.WELCOME_TRANSFER_AMOUNT,
                 configs.WELCOME_TRANSFER_ASSET,
-                configs.WELCOME_TRANSFER_ACCOUNT
+                account=configs.WELCOME_TRANSFER_ACCOUNT
             )
         except:
             logger.exception("Can't send welcome tokens to %s !!!" % account_name)
@@ -209,14 +210,14 @@ class AccountView(views.View):
         try:
             return BitsharesAccount(registrar, bitshares_instance=bitshares_instance)
         except:
-            raise ApiException(self.ERROR_UNKNOWN_REGISTRAR, "Unknown registrar: %s" % account['registrar'])
+            raise ApiException(self.ERROR_UNKNOWN_REGISTRAR, "Unknown registrar: %s" % registrar)
 
     def get_referrer(self, bitshares_instance, account):
-        registrar = account.get("referrer") or configs.DEFAULT_REFERRER
+        referrer = account.get("referrer") or configs.DEFAULT_REFERRER
         try:
-            return BitsharesAccount(registrar, bitshares_instance=bitshares_instance)
+            return BitsharesAccount(referrer, bitshares_instance=bitshares_instance)
         except:
-            raise ApiException(self.ERROR_UNKNOWN_REFERRER, "Unknown referrer: %s" % account['referrer'])
+            raise ApiException(self.ERROR_UNKNOWN_REFERRER, "Unknown referrer: %s" % referrer)
 
     def check_registrar_balance(self, registrar):
         balance = registrar.balance(configs.CORE_ASSET)

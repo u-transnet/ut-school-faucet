@@ -23,7 +23,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = '54%0865ms&i6$4f*s35&$wegw)d(*jutq-lb5^v8)k)=-=ar*j'
 
 ALLOWED_HOSTS = []
-
+BLOCKCHAIN_NOBROADCAST = False # Not broadcasting transactions
 
 # Application definition
 
