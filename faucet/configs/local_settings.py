@@ -1,7 +1,6 @@
-from .private_key import *
-
 MIN_IP_AGE = 300  # How long in secs does an IP need to wait to register a new account?
 WITNESS_URL = "wss://bitshares.openledger.info/ws"  # Url of node for registering
+WIF = ""
 
 REGISTRAR = "u-tech-faucet"
 DEFAULT_REFERRER = "u-tech-faucet"
@@ -13,7 +12,8 @@ CORE_ASSET = "BTS"  # Main asset used for paying fees
 WELCOME_TRANSFER_ENABLED = True
 WELCOME_TRANSFER_ACCOUNT = "u-tech-faucet"  # Account name from which will be send welcome tokens
 WELCOME_TRANSFER_ASSET = "BTS"  # Asset which which will be welcome token
-WELCOME_TRANSFER_AMOUNT = 5  # Amount of welcome tokens whice will be sended
+WELCOME_TRANSFER_AMOUNT = 5  # Amount of welcome tokens which will be sent
+WELCOME_TRANSFER_ACCOUNT_WIF = ""
 
 PROXY = None
 ADDITIONAL_OWNER_ACCOUNTS = []
