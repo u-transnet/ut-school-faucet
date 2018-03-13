@@ -38,23 +38,3 @@ VK_ACCESS_TOKEN = 'change_me'
 FACEBOOK_ACCESS_TOKEN = 'change_me'
 GOOGLE_ACCESS_TOKEN = 'change_me'
  ```
-
-# Получение access_token'ов
-Сначала необходимо авторизоваться в выбранной социальной сети.
-
-**Facebook**
-1) Перейти по [этой ссылке](https://developers.facebook.com/tools/explorer);
-2) Скопировать значение поля "Марке доступа";
-
-**Google**
-1) Перейти по [ссылке](https://developers.google.com/oauthplayground/)
-2) В step 1 выбрать "Google+ API v1" и отметить "https://www.googleapis.com/auth/plus.me";
-3) Нажать кнопку "Authorize APIs" и пройти авторизацию;
-4) В step 2 нажать кнопку "Exchange authorization code for tokens";
-5) Скопировать значение поля "Access token";
-
-**VK**
-1) Перейти по ссылке
-https://oauth.vk.com/authorize?client_id=4979907&scope=photos,groups,email&response_type=token;
-2) Пройти авторизацию;
-3) Скопировать значение get-параметра "access_token" из адресной строки;
