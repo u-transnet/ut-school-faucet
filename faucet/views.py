@@ -119,7 +119,7 @@ class AccountView(views.View):
         if Account.exists(ip):
             raise ApiException(self.ERROR_DUPLICATE_ACCOUNT, 'Only one account per IP')
 
-        return True
+        return ip
 
     def validate_account(self, bitshares_instance, account):
         account_name = account['name']
