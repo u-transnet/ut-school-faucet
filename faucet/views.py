@@ -268,7 +268,6 @@ class LectureView(views.View):
                                'You have no permission for performing this operation.'
                                ' You must be admin of that group')
 
-
         keys = []
         if configs.WIF:
             keys.append(configs.WIF)
