@@ -11,7 +11,7 @@ REFERRER_PERCENT = os.environ.get("REFERRER_PERCENT", 50)  # in percent
 BALANCE_NOTIFY_THRESHOLD = os.environ.get("BALANCE_NOTIFY_THRESHOLD", 500)  # if balances goes below this, you will be notified
 CORE_ASSET = os.environ.get("CORE_ASSET", "BTS")  # Main asset used for paying fees
 
-WELCOME_TRANSFER_ENABLED = os.environ.get("WELCOME_TRANSFER_ENABLED", True)
+WELCOME_TRANSFER_ENABLED = os.environ.get("WELCOME_TRANSFER_ENABLED", "True").lower() == 'true'
 WELCOME_TRANSFER_ACCOUNT = os.environ.get("WELCOME_TRANSFER_ACCOUNT", "u-tech-faucet")  # Account name from which will be send welcome tokens
 WELCOME_TRANSFER_ASSET = os.environ.get("WELCOME_TRANSFER_ASSET", "BTS")  # Asset which which will be welcome token
 WELCOME_TRANSFER_AMOUNT = os.environ.get("WELCOME_TRANSFER_AMOUNT", 5)  # Amount of welcome tokens which will be sent
