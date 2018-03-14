@@ -14,11 +14,11 @@ class Account(models.Model):
     ]
 
     name = models.CharField('Аккаунт', max_length=255, unique=True)
-    ip = models.CharField('IP', max_length=100, unique=True)
+    ip = models.CharField('IP', max_length=100, null=True)
     created = models.DateTimeField('Дата создания', auto_now_add=True)
 
-    authorized_network = models.CharField('Соц. сеть', choices=NETWORKS, max_length=12)
-    uid = models.CharField('UID', max_length=100)
+    authorized_network = models.CharField('Соц. сеть', choices=NETWORKS, max_length=12, null=True)
+    uid = models.CharField('UID', max_length=100, null=True)
     first_name = models.CharField('Имя', max_length=150, )
     last_name = models.CharField('Фамилия', max_length=150)
     photo = models.URLField('Фотография', max_length=255, default='')
