@@ -45,8 +45,10 @@ class AddLectureForm(forms.Form):
         results = re.compile('topic-(\d+_\d+)').search(self.cleaned_data.get('topic_url', ''))
         if not results:
             return None
+        if not results.groups():
+            return None
 
-        return results.groups(1)
+        return results.group(1)
 
 
 class GetLecturesForm(forms.Form):
