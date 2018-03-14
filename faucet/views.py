@@ -271,7 +271,7 @@ class LectureView(views.View):
 
         keys = []
         if configs.WIF:
-            keys.pop(configs.WIF)
+            keys.append(configs.WIF)
 
         bitshares_instance = BitShares(
             configs.WITNESS_URL,
