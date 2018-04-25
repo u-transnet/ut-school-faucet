@@ -9,7 +9,7 @@ heroku login
 
 Добавьт текущее приложение на heroku
 ```
-heroku git:remota -a <application_name>
+heroku git:remote -a <application_name>
 ```
 
 Активируйте postgres add-on
