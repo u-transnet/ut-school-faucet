@@ -95,17 +95,20 @@ class AccountView(views.View):
         registrar = self.get_registrar(bitshares, account)
         referrer = self.get_referrer(bitshares, account)
 
-        self.create_account(bitshares, account, registrar['id'], referrer['id'], ip, account['social_network'])
+        user_data = self.create_account(bitshares, account, registrar['id'], referrer['id'], ip, account['social_network'])
 
         self.check_registrar_balance(registrar)
 
-        return JsonResponse({"account": {
+        account_data = {
             "name": account["name"],
             "owner_key": account["owner_key"],
             "active_key": account["active_key"],
             "memo_key": account["memo_key"],
-            "referrer": referrer["name"]
-        }})
+            "referrer": referrer["name"],
+            "user_data": user_data
+        }
+
+        return JsonResponse({"account": account_data})
 
     def get_ip(self, request):
         if request.META.get('X-Real-IP'):
@@ -179,6 +182,8 @@ class AccountView(views.View):
             raise ApiException(self.ERROR_INTERNAL_BLOCKCHAIN_ERROR, 'Error during broadcasting data into blockchain')
 
         self.send_welcome_tokens(account['name'])
+
+        return user_data
 
     def send_welcome_tokens(self, account_name):
         if not configs.WELCOME_TRANSFER_ENABLED:
