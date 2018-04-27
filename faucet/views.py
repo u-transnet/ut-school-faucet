@@ -58,6 +58,7 @@ class AccountView(views.View):
     ERROR_INTERNAL_BLOCKCHAIN_ERROR = 107
     ERROR_UNKNOWN_REFERRER = 108
     ERROR_INTERNAL_SERVER_ERROR = 109
+    ERROR_DUPLICATE_ACCOUNT_SN = 110
 
     @catch_api_error
     def get(self, request):
@@ -157,7 +158,7 @@ class AccountView(views.View):
                 photo=user_data['photo']
             )
         except IntegrityError:
-            raise ApiException(self.ERROR_DUPLICATE_ACCOUNT,
+            raise ApiException(self.ERROR_DUPLICATE_ACCOUNT_SN,
                                'Account with this %s uid already exists' % user_data['uid'])
 
         referrer_percent = account.get("referrer_percent", configs.REFERRER_PERCENT)
