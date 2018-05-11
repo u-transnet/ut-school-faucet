@@ -13,6 +13,7 @@ requirements = [
     'django-heroku',
     'gunicorn',
     'whitenoise'
+    'django-cors-headers'
 ]
 
 if __name__ == '__setup__':
