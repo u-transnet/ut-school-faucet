@@ -11,7 +11,8 @@ requirements = [
     'google-api-python-client==1.6.5',
     'facebook-sdk==2.0.0',
     'django-heroku',
-    'gunicorn'
+    'gunicorn',
+    'whitenoise'
 ]
 
 if __name__ == '__setup__':
