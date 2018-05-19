@@ -3,8 +3,7 @@
 # ut-school-faucet
 Фасет для направления ut-school предназначен для регистрации пользователей в приложении ut-school, а так же предоставляет доступ к single page application для данного направления
 
-## Installation
-
+## Установка
 Авторизуйтесь на heroku
 ```
 heroku login
@@ -25,12 +24,11 @@ heroku addons:create heroku-postgresql:hobby-dev
 git push heroku heroku:master
 ```
 
-
-## Related projects
+## Связанные проекты
 - [python-utransnet](https://github.com/u-transnet/python-utransnet)
 
-## Contributing
-We'd love to have your helping hand on our project! See [CONTRIBUTING.md](CONTRIBUTING.md) for more information on what we're looking for and how to get started.
+## Сотрудничество
+Мы будем рады вашей помощи в развитии проекта! Откройте [CONTRIBUTING.ru.md](CONTRIBUTING.ru.md) для того, чтобы узнать чем Вы можете поможете помочь проекту и как присоединиться
 
-## License
-Project is under the MIT license. See [LICENSE](LICENSE) for more information.
+## Лицензия
+Проект использует MIT лицензию. Откройте [LICENSE](LICENSE) для подробностей
