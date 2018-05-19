@@ -58,6 +58,7 @@ class AccountView(views.View):
     ERROR_INTERNAL_BLOCKCHAIN_ERROR = 107
     ERROR_UNKNOWN_REFERRER = 108
     ERROR_INTERNAL_SERVER_ERROR = 109
+    ERROR_DUPLICATE_ACCOUNT_SN = 110
 
     @catch_api_error
     def get(self, request):
@@ -95,17 +96,20 @@ class AccountView(views.View):
         registrar = self.get_registrar(bitshares, account)
         referrer = self.get_referrer(bitshares, account)
 
-        self.create_account(bitshares, account, registrar['id'], referrer['id'], ip, account['social_network'])
+        user_data = self.create_account(bitshares, account, registrar['id'], referrer['id'], ip, account['social_network'])
 
         self.check_registrar_balance(registrar)
 
-        return JsonResponse({"account": {
+        account_data = {
             "name": account["name"],
             "owner_key": account["owner_key"],
             "active_key": account["active_key"],
             "memo_key": account["memo_key"],
-            "referrer": referrer["name"]
-        }})
+            "referrer": referrer["name"],
+            "user_data": user_data
+        }
+
+        return JsonResponse({"account": account_data})
 
     def get_ip(self, request):
         if request.META.get('X-Real-IP'):
@@ -154,7 +158,7 @@ class AccountView(views.View):
                 photo=user_data['photo']
             )
         except IntegrityError:
-            raise ApiException(self.ERROR_DUPLICATE_ACCOUNT,
+            raise ApiException(self.ERROR_DUPLICATE_ACCOUNT_SN,
                                'Account with this %s uid already exists' % user_data['uid'])
 
         referrer_percent = account.get("referrer_percent", configs.REFERRER_PERCENT)
@@ -179,6 +183,8 @@ class AccountView(views.View):
             raise ApiException(self.ERROR_INTERNAL_BLOCKCHAIN_ERROR, 'Error during broadcasting data into blockchain')
 
         self.send_welcome_tokens(account['name'])
+
+        return user_data
 
     def send_welcome_tokens(self, account_name):
         if not configs.WELCOME_TRANSFER_ENABLED:

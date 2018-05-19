@@ -28,7 +28,8 @@ BLOCKCHAIN_NOBROADCAST = False # Not broadcasting transactions
 # Application definition
 
 PROJECT_APPS = [
-    'faucet'
+    'faucet',
+    'web'
 ]
 
 INSTALLED_APPS = [
@@ -38,11 +39,14 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    'corsheaders'
 ] + PROJECT_APPS
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     #'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -89,6 +93,9 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+# CORS
+CORS_URLS_REGEX = r'^/api/.*$'
+CORS_ORIGIN_ALLOW_ALL = True
 
 # Internationalization
 # https://docs.djangoproject.com/en/2.0/topics/i18n/
@@ -108,7 +115,9 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/2.0/howto/static-files/
 
 STATIC_URL = '/static/'
+MEDIA_URL = '/media/'
 
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Load applications settings
 

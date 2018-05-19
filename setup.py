@@ -9,7 +9,8 @@ requirements = [
     'google-auth==1.4.1',
     'google-auth-httplib2==0.0.3',
     'google-api-python-client==1.6.5',
-    'facebook-sdk==2.0.0'
+    'facebook-sdk==2.0.0',
+    'django-cors-headers'
 ]
 
 if __name__ == '__setup__':

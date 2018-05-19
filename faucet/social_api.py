@@ -24,7 +24,7 @@ class VKApi(object):
             'uid': user_data['uid'],
             'first_name': user_data['first_name'],
             'last_name': user_data['last_name'],
-            'photo': user_data['photo_200']
+            'photo': user_data.get('photo_200', '')
         }
 
     def check_is_topic_admin(self, topic_url):
@@ -48,7 +48,7 @@ class GoogleApi(object):
             'uid': user_data.get('id'),
             'first_name': user_data['name'].get('givenName'),
             'last_name': user_data['name'].get('familyName'),
-            'photo': user_data.get('image').get('url')
+            'photo': user_data.get('image').get('url', '')
         }
 
 
